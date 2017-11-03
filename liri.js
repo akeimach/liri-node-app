@@ -9,7 +9,9 @@ var input = process.argv.slice(3).join(" "); // everything after the initial com
 
 runProgram();
 
+
 function runProgram() {
+    logText("\n\nYour command input: " + command + " " + input);
     switch(command) {
         case "my-tweets":
             displayTweets();
@@ -24,7 +26,7 @@ function runProgram() {
             doWhatItSays();
             break;
         default:
-            console.log("invalid command");
+            logText("invalid command");
     }
 }
 
@@ -46,11 +48,15 @@ function displayTweets() {
     client.get("statuses/user_timeline", params, function(error, tweets, response) {
         if (!error && response.statusCode === 200) {
             for (var i = 0; i < tweets.length; i++) {
-                console.log(tweets[i].created_at + "\n" + tweets[i].text + "\n\n");
+                logText(tweets[i].created_at + "\n" + tweets[i].text);
             }
+        }
+        else {
+            logText("Failed at my-tweets " + error);
         }
     });
 }
+
 
 function displaySong() {
 
@@ -70,10 +76,13 @@ function displaySong() {
  
     client.search(params, function(error, data) {
         if (!error) {
-            console.log("Artist: " + data.tracks.items[0].album.artists[0].name); 
-            console.log("Song: " + data.tracks.items[0].name); 
-            console.log("Preview: " + data.tracks.items[0].preview_url); 
-            console.log("Album: " + data.tracks.items[0].album.name);
+            logText("Artist: " + data.tracks.items[0].album.artists[0].name); 
+            logText("Song: " + data.tracks.items[0].name); 
+            logText("Preview: " + data.tracks.items[0].preview_url); 
+            logText("Album: " + data.tracks.items[0].album.name);
+        }
+        else {
+            logText("Failed at spotify-this-song " + error);
         }
     });
 }
@@ -90,17 +99,18 @@ function displayMovie() {
     request(queryUrl, function(error, response, body) {
 
         if (!error && response.statusCode === 200) {
-            console.log("Title: " + JSON.parse(body).Title);
-            console.log("Year: " + JSON.parse(body).Year);
-            console.log("IMDB Rating: " + JSON.parse(body).imdbRating);
-            console.log("Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value);
-            console.log("Country: " + JSON.parse(body).Country);
-            console.log("Language: " + JSON.parse(body).Language);
-            console.log("Plot: " + JSON.parse(body).Plot);
-            console.log("Actors: " + JSON.parse(body).Actors);
+            var bodyObj = JSON.parse(body);  // convert from string to object
+            logText("Title: " + bodyObj.Title);
+            logText("Year: " + bodyObj.Year);
+            logText("IMDB Rating: " + bodyObj.imdbRating);
+            logText("Rotten Tomatoes Rating: " + bodyObj.Ratings[1].Value);
+            logText("Country: " + bodyObj.Country);
+            logText("Language: " + bodyObj.Language);
+            logText("Plot: " + bodyObj.Plot);
+            logText("Actors: " + bodyObj.Actors);
         }
         else {
-            console.log("failed");
+            logText("Failed at movie-this " + error);
         }
     })
 }
@@ -116,10 +126,22 @@ function doWhatItSays() {
                 input = dataArr[1].replace(/"/g, "");
             }
             if (command === "do-what-it-says") {
-                return console.log("Infinite loop, exiting before it's too late");
+                return logText("Infinite loop, exiting before it's too late");
             }
             runProgram();
+        }
+        else {
+            logText("Failed at do-what-it-says " + error);
         }
     });
 }
 
+
+function logText(content) {
+    console.log(content + "\n");
+    fs.appendFile("log.txt", content + "\n\n", function(error) {
+        if (error) {
+            console.log("Failed save to log file");
+        }
+    });
+}
