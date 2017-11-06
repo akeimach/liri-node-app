@@ -1,17 +1,49 @@
 var keys = require("./keys.js");
+var inquirer = require("inquirer");
 var fs = require("fs");
 var request = require("request");
 var twitter = require("twitter");
 var spotify = require("node-spotify-api");
+var command;
+var input;
 
-var command = process.argv[2];
-var input = process.argv.slice(3).join(" "); // everything after the initial command
-
-runProgram();
+inquirer.prompt([
+    {
+        type: "list",
+        message: "Which functionality do you want to use?",
+        choices: ["my-tweets", "spotify-this-song", "movie-this", "do-what-it-says"],
+        name: "command"
+    }
+]).then(function(response) {
+    // First set the command to the result from inquirer list entry
+    command = response.command;
+    if ((command === "spotify-this-song") || (command === "movie-this")) {
+        inquirer.prompt([
+            {
+                type: "input",
+                message: "Enter the title",
+                name: "input"
+            }
+        ]).then(function(responseTitle) {
+            // Nested inquirer for follow up question if applicable
+            input = responseTitle.input;
+            runProgram();
+        });
+    }
+    else {
+        // Use the command and input to go through the whole process
+        runProgram();
+    }
+});
 
 
 function runProgram() {
-    logText("\n\nYour command input: " + command + " " + input);
+    var printCommand = "\n\nYour command input: " + command;
+    if (input) {
+        printCommand += " " + input;
+    }
+    // send the user's command to the log and console
+    logText(printCommand);
     switch(command) {
         case "my-tweets":
             displayTweets();
@@ -41,6 +73,7 @@ function displayTweets() {
     });
  
     var params = {
+        // pull tweets from this account instead because I have never tweeted
         screen_name: "yaboybillnye",
         count: 20
     };
@@ -48,6 +81,7 @@ function displayTweets() {
     client.get("statuses/user_timeline", params, function(error, tweets, response) {
         if (!error && response.statusCode === 200) {
             for (var i = 0; i < tweets.length; i++) {
+                // send each tweet to the log and console
                 logText(tweets[i].created_at + "\n" + tweets[i].text);
             }
         }
@@ -66,6 +100,7 @@ function displaySong() {
     });
 
     if (!input) {
+        // default to use if no song entered
         input = "The Sign";
     }
 
@@ -91,6 +126,7 @@ function displaySong() {
 function displayMovie() {
 
     if (!input) {
+        // default to use if no movie entered
         input = "Mr. Nobody";
     }
 
@@ -126,8 +162,10 @@ function doWhatItSays() {
                 input = dataArr[1].replace(/"/g, "");
             }
             if (command === "do-what-it-says") {
+                // can't call do-what-it-says because this will never end
                 return logText("Infinite loop, exiting before it's too late");
             }
+            // fun the whole process using these random commands
             runProgram();
         }
         else {
@@ -138,6 +176,7 @@ function doWhatItSays() {
 
 
 function logText(content) {
+    // format and log any content sent to this function
     console.log(content + "\n");
     fs.appendFile("log.txt", content + "\n\n", function(error) {
         if (error) {
